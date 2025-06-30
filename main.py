@@ -6,82 +6,81 @@ import requests
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+from keep_alive import keep_alive
+from dotenv import load_dotenv
 
-# ثابت‌ها
-BOT_TOKEN = "7915312006:AAGJ1gsx-40BEcVgZX3eBopBY7HhesLy5iA"
-ALLOWED_USER = 819772214  # آیدی عددی خودت
-WALLETS_FILE = "wallets.json"
+load_dotenv()
 
-# لود کردن لیست والت‌ها
+bot_token = "7915312006:AAGJ1gsx-40BEcVgZX3eBopBY7HhesLy5iA"
+helius_api_key = "42c9684f-2ec1-4a0c-b50e-69728eccc23b"
+allowed_user = "819727144"
+wallets_file = "wallets.json"
+
 def load_wallets():
-    if not os.path.exists(WALLETS_FILE):
+    if not os.path.exists(wallets_file):
         return []
-    with open(WALLETS_FILE, "r") as f:
+    with open(wallets_file, "r") as f:
         return json.load(f)
 
-# ذخیره‌سازی والت‌ها
 def save_wallets(wallets):
-    with open(WALLETS_FILE, "w") as f:
+    with open(wallets_file, "w") as f:
         json.dump(wallets, f, indent=4)
 
-# دستور استارت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ALLOWED_USER:
+    if str(update.effective_user.id) != allowed_user:
         return
-    await update.message.reply_text("سلام! ربات فعال است ✅")
+    await update.message.reply_text("✅ ربات فعال است.")
 
-# افزودن والت جدید
 async def add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ALLOWED_USER:
+    if str(update.effective_user.id) != allowed_user:
         return
-    if not context.args:
-        await update.message.reply_text("لطفاً آدرس والت را وارد کن.")
+    if len(context.args) != 1:
+        await update.message.reply_text("آدرس ولت را به درستی وارد کنید.")
         return
-    new_wallet = context.args[0]
+    wallet = context.args[0]
     wallets = load_wallets()
-    if new_wallet in wallets:
-        await update.message.reply_text("این والت قبلاً اضافه شده.")
+    if wallet in wallets:
+        await update.message.reply_text("این ولت قبلاً اضافه شده.")
         return
-    wallets.append(new_wallet)
+    wallets.append(wallet)
     save_wallets(wallets)
-    await update.message.reply_text("✅ والت با موفقیت اضافه شد.")
+    await update.message.reply_text(f"✅ ولت {wallet} اضافه شد.")
 
-# حذف والت
 async def remove_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ALLOWED_USER:
+    if str(update.effective_user.id) != allowed_user:
         return
-    if not context.args:
-        await update.message.reply_text("آدرس والت مورد نظر برای حذف را وارد کن.")
+    if len(context.args) != 1:
+        await update.message.reply_text("آدرس ولت را به درستی وارد کنید.")
         return
     wallet = context.args[0]
     wallets = load_wallets()
     if wallet not in wallets:
-        await update.message.reply_text("این والت در لیست نیست.")
+        await update.message.reply_text("این ولت در لیست نیست.")
         return
     wallets.remove(wallet)
     save_wallets(wallets)
-    await update.message.reply_text("❌ والت حذف شد.")
+    await update.message.reply_text(f"❌ ولت {wallet} حذف شد.")
 
-# نمایش لیست والت‌ها
 async def list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ALLOWED_USER:
+    if str(update.effective_user.id) != allowed_user:
         return
     wallets = load_wallets()
     if not wallets:
-        await update.message.reply_text("لیست والت‌ها خالیه.")
-        return
-    msg = "لیست والت‌ها:\n" + "\n".join(wallets)
-    await update.message.reply_text(msg)
+        await update.message.reply_text("هیچ ولتی ثبت نشده.")
+    else:
+        msg = "📜 لیست ولت‌ها:\n" + "\n".join(wallets)
+        await update.message.reply_text(msg)
 
-# شروع ربات
-async def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+def main():
+    app = Application.builder().token(bot_token).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("add", add_wallet))
     app.add_handler(CommandHandler("remove", remove_wallet))
     app.add_handler(CommandHandler("list", list_wallets))
-    print("✅ ربات آماده است...")
-    await app.run_polling()
 
-if __name__ == '__main__':
-    asyncio.run(main())
+    keep_alive()
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
